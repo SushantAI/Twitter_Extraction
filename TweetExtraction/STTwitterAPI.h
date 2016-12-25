@@ -553,7 +553,7 @@ authenticateInsteadOfAuthorize:(BOOL)authenticateInsteadOfAuthorize // use NO if
                                                  includeEntities:(NSNumber *)includeEntities
                                                         callback:(NSString *)callback // eg. "processTweets"
                                             useExtendedTweetMode:(NSNumber *)useExtendedTweetMode
-                                                    successBlock:(void(^)(NSDictionary *searchMetadata, NSArray *statuses))successBlock
+                                                    successBlock:(void(^)(NSDictionary *searchMetadata, NSArray *statuses, NSDictionary *rateLimits))successBlock
                                                       errorBlock:(void(^)(NSError *error))errorBlock;
 
 // convenience method

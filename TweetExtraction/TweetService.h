@@ -12,15 +12,18 @@
 @interface TweetService : NSOperation
 @property (assign, atomic) BOOL running;
 @property (assign) NSString * amountOfTweetsToPull;
+@property (assign) NSString * cityCoordinates;
+@property (assign) NSString * cityLongitude;
+@property (assign) NSString * cityRadius;
 
 
--(id)initWithLocation:(id)location withTeetPullAmount:(int)tweetAmount;
+-(id)initWithLocation:(id)location withTeetPullAmount:(int)tweetAmount latitude:(float)latitude longitude:(float)longitude radius:(int)radius;
 
 @property (weak) NSObject<TweetDelegate>* tweetDelegate;
 @property (nonatomic, strong) NSArray *tweetStatuses;
 //@property (nonatomic, strong) NSArray *tweetObjArr;
 @property (strong) Tweet * tweetData;
 
--(void) getTweets;
+-(NSInteger) getTweets;
 
 @end

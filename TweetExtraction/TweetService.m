@@ -15,27 +15,6 @@
 
 @implementation TweetService
 
-// Data limit
-// Location type
-
-
--(id)initWithLocation:(id)location withTeetPullAmount:(int)tweetAmount{
-    self = [super init];
-    
-    if(self)
-    {
-        self.amountOfTweetsToPull = [NSString stringWithFormat:@"%i", tweetAmount];
-        self.tweetData = [[Tweet alloc]init];
-    }
-    
-    return self;
-}
-
-
--(void)start{
-    [self startPullingTweets];
-}
-
 /* App settings
  Consumer Key (API Key)          wfTYiWbxALRestlizHmbunDPS
  Consumer Secret (API Secret)	 YS2aX27u8KTwTWjv9U0LvEXdMyy173hDZRGWmH6mQzoXMn29FO
@@ -61,67 +40,108 @@ NSString * longitude_city = @"1.4701";
 //NSString * accuracy_city = @"100";
 NSString * granularity = @"";
 NSString * max_results_city = @"300";
-NSString * geocode_city = @"40.7128,74.0059,100mi";
-/*STTwitterAPI *twitter = [STTwitterAPI twitterAPIAppOnlyWithConsumerKey:Consumer_Key
- consumerSecret:Consumer_Secret];*/
-
-// Query?
+//NSString * geocode_city = @"40.7128,74.0059,100mi";
 
 // Contains tweet objects
 NSMutableArray * tweetObjArr;
+// Store in app flash/database
+NSInteger totalRateLimit = 0;
+// Store in app flash/database
+NSInteger availableRateLimit = 1;
+NSInteger errorStatus;
 
--(void) getTweets
+-(id)initWithLocation:(id)location withTeetPullAmount:(int)tweetAmount latitude:(float)latitude longitude:(float)longitude radius:(int)radius
 {
+    self = [super init];
+    
+    if(self)
+    {
+        self.amountOfTweetsToPull = [NSString stringWithFormat:@"%i", tweetAmount];
+        self.cityCoordinates = [NSString stringWithFormat:@"%f,%f,%imi", latitude, longitude, radius];
+        self.tweetData = [[Tweet alloc]init];
+    }
+    return self;
+}
+
+-(void)start{
+    [self startPullingTweets];
+}
+
+// Method to extract tweets from twitter using REST API and STTwitter library
+-(NSInteger) getTweets
+{
+    errorStatus = 0;
+    // Check if tweets to pull are non-zero
     if(self.amountOfTweetsToPull > 0)
     {
-        NSString * accuracy_city = self.amountOfTweetsToPull;
-        
-        tweetObjArr = [[NSMutableArray alloc] init];
-        //self.tweetObjArr = [[NSArray alloc]initWithObjects:self.tweetData, nil];
-        
-        STTwitterAPI *twitter = [STTwitterAPI twitterAPIWithOAuthConsumerKey:Consumer_Key consumerSecret:Consumer_Secret oauthToken:Access_Token oauthTokenSecret:Access_Token_Secret];
-        
-        [twitter verifyCredentialsWithUserSuccessBlock:^(NSString *username, NSString *userID) {
-            NSLog(@"Successful authentication/n");
+        // Check if the available tweet request rate limit is greater than 0
+        if(availableRateLimit > 0)
+        {
+            NSString * accuracy_city = self.amountOfTweetsToPull;
+            NSString * geocode_city = self.cityCoordinates;
+            tweetObjArr = [[NSMutableArray alloc] init];
             
-            [twitter getSearchTweetsWithQuery:@"f" geocode:geocode_city lang:nil locale:nil resultType:@"recent" count:accuracy_city until:nil sinceID:nil maxID:nil includeEntities:[NSNumber numberWithInt:1] callback:nil useExtendedTweetMode:0 successBlock:^(NSDictionary *searchMetadata, NSArray *statuses) {
-                //NSLog(@"%@ %lu", statuses, (unsigned long)statuses.count);
+            // Create instance of the twitter account using OAuth
+            STTwitterAPI *twitter = [STTwitterAPI twitterAPIWithOAuthConsumerKey:Consumer_Key consumerSecret:Consumer_Secret oauthToken:Access_Token oauthTokenSecret:Access_Token_Secret];
+            
+            // Verify the twitter account credentials
+            [twitter verifyCredentialsWithUserSuccessBlock:^(NSString *username, NSString *userID)
+            {
+                NSLog(@"Successful authentication/n");
                 
-                self.tweetStatuses = statuses;
-                
-                for (int i = 0; i < [self.tweetStatuses count]; i++)
+                // Request to pull tweets from a given location
+                [twitter getSearchTweetsWithQuery:@"" geocode:geocode_city lang:nil locale:nil resultType:@"recent" count:accuracy_city until:nil sinceID:nil maxID:nil includeEntities:[NSNumber numberWithInt:1] callback:nil useExtendedTweetMode:0
+                successBlock:^(NSDictionary *searchMetadata, NSArray *statuses, NSDictionary * rateLimits)
                 {
-                    NSDictionary * dicTweet = [self.tweetStatuses objectAtIndex:i];
-                    NSDictionary * dicForUserData = [dicTweet valueForKey:@"user"];
+                    //NSLog(@"%@ %lu", statuses, (unsigned long)statuses.count);
+                    
+                    self.tweetStatuses = statuses;
+            
+                    NSLog(@"%@", rateLimits);
+                    totalRateLimit = [[rateLimits valueForKey:@"x-rate-limit-remaining"] integerValue];
+                    availableRateLimit = [[rateLimits valueForKey:@"x-rate-limit-remaining"] integerValue];
+                    
+                    for (int i = 0; i < [self.tweetStatuses count]; i++)
+                    {
+                        NSDictionary * dicTweet = [self.tweetStatuses objectAtIndex:i];
+                        NSDictionary * dicForUserData = [dicTweet valueForKey:@"user"];
 
-                    //for (k in [dic allKeys]) {}
-                    
-                    NSLog(@"Date: %@\n Text: %@\n", [dicTweet valueForKey:@"created_at"], [dicTweet valueForKey:@"text"]);
-                    NSLog(@"Name: %@\n Screen_name: %@\n", [dicForUserData valueForKey:@"name"], [dicForUserData valueForKey:@"screen_name"]);
-                    
-                    self.tweetData.userName = [dicForUserData valueForKey:@"name"];
-                    self.tweetData.userScreenName = [dicForUserData valueForKey:@"screen_name"];
-                    self.tweetData.tweetText = [dicTweet valueForKey:@"text"];
-                    self.tweetData.tweetTime = [dicTweet valueForKey:@"created_at"];
-                    //NSDate *date = [[NSDateFormatter stTwitterDateFormatter] dateFromString:self.tweetData.tweetTime];
-                    [tweetObjArr addObject:self.tweetData];
+                        //for (k in [dic allKeys]) {}
+                        
+                        /*NSLog(@"Date: %@\n Text: %@\n", [dicTweet valueForKey:@"created_at"], [dicTweet valueForKey:@"text"]);
+                        NSLog(@"Name: %@\n Screen_name: %@\n", [dicForUserData valueForKey:@"name"], [dicForUserData valueForKey:@"screen_name"]);*/
+                        
+                        self.tweetData.userName = [dicForUserData valueForKey:@"name"];
+                        self.tweetData.userScreenName = [dicForUserData valueForKey:@"screen_name"];
+                        self.tweetData.tweetText = [dicTweet valueForKey:@"text"];
+                        self.tweetData.tweetTime = [dicTweet valueForKey:@"created_at"];
+                        [tweetObjArr addObject:self.tweetData];
+                    }
+                    errorStatus = 1;
                 }
-                
-            } errorBlock:^(NSError *error) {
+                errorBlock:^(NSError *error)
+                {
+                    NSLog(@"Error in authentication:%@/n", error.localizedDescription);
+                }];
+            }
+            errorBlock:^(NSError *error)
+            {
                 NSLog(@"Error in authentication:%@/n", error.localizedDescription);
             }];
-            
-        } errorBlock:^(NSError *error) {
-            NSLog(@"Error in authentication:%@/n", error.localizedDescription);
-        }];
+        }
+        else
+        {
+            NSLog(@"Tweet rate limit reached/n");
+        }
     }
     else
     {
         NSLog(@"Tweet count should be greater than 0/n");
     }
+    return errorStatus;
 }
 
-// Call this when the batch of tweets is ready
+// Batch of tweets is ready
 -(void)startPullingTweets{
     
     dispatch_async(dispatch_get_main_queue(), ^{

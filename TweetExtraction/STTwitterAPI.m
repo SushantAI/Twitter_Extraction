@@ -1349,7 +1349,7 @@ authenticateInsteadOfAuthorize:authenticateInsteadOfAuthorize
                                                  includeEntities:(NSNumber *)includeEntities
                                                         callback:(NSString *)callback // eg. "processTweets"
                                             useExtendedTweetMode:(NSNumber *)useExtendedTweetMode
-                                                    successBlock:(void(^)(NSDictionary *searchMetadata, NSArray *statuses))successBlock
+                                                    successBlock:(void(^)(NSDictionary *searchMetadata, NSArray *statuses, NSDictionary *rateLimits))successBlock
                                                       errorBlock:(void(^)(NSError *error))errorBlock {
     
     NSMutableDictionary *md = [NSMutableDictionary dictionary];
@@ -1377,7 +1377,7 @@ authenticateInsteadOfAuthorize:authenticateInsteadOfAuthorize
         NSDictionary *searchMetadata = [response valueForKey:@"search_metadata"];
         NSArray *statuses = [response valueForKey:@"statuses"];
         
-        successBlock(searchMetadata, statuses);
+        successBlock(searchMetadata, statuses, rateLimits);
     } errorBlock:^(NSError *error) {
         errorBlock(error);
     }];
@@ -1399,7 +1399,7 @@ authenticateInsteadOfAuthorize:authenticateInsteadOfAuthorize
                           includeEntities:@(YES)
                                  callback:nil
                         useExtendedTweetMode:nil
-                             successBlock:^(NSDictionary *searchMetadata, NSArray *statuses) {
+                             successBlock:^(NSDictionary *searchMetadata, NSArray *statuses, NSDictionary *rateLimits) {
                                  successBlock(searchMetadata, statuses);
                              } errorBlock:^(NSError *error) {
                                  errorBlock(error);

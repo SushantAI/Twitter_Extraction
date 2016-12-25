@@ -18,8 +18,8 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
-
-    self.tweetService = [[TweetService alloc]initWithLocation:nil withTeetPullAmount:50];
+    
+    self.tweetService = [[TweetService alloc]initWithLocation:nil withTeetPullAmount:500 latitude:53.3811 longitude:1.4701 radius:100];
     [self.tweetService getTweets];
 }
 
